@@ -121,6 +121,32 @@ fake_tool() {
   [[ "${found}" == "uutils 0.1.0;busybox 1.36.1;gnu 4.9;mawk 1.3.4;bsd 20200816;" ]]
 }
 
+@test "a BusyBox applet that names itself after its error line is named busybox" {
+  # Arrange
+  mkdir -p "${WORK}/bin"
+  printf '#!/bin/sh\necho "awk: invalid option -- -"\necho "BusyBox v1.37.0 (Ubuntu 1:1.37.0-7ubuntu1) multi-call binary."\n' >"${WORK}/bin/awk"
+  chmod +x "${WORK}/bin/awk"
+
+  # Act
+  run kb_test_call kb_tool_flavor "${WORK}/bin/awk"
+
+  # Assert
+  [[ "${status}" -eq 0 ]]
+  [[ "${output}" == "busybox 1.37.0" ]]
+}
+
+@test "BusyBox sed, which says it is not GNU sed, is named busybox" {
+  # Arrange
+  fake_tool "${WORK}/bin/sed" "This is not GNU sed version 4.0"
+
+  # Act
+  run kb_test_call kb_tool_flavor "${WORK}/bin/sed"
+
+  # Assert
+  [[ "${status}" -eq 0 ]]
+  [[ "${output}" == "busybox" ]]
+}
+
 @test "a silent tool is named by where it lives and the system it runs on" {
   # Arrange
   fake_tool "${WORK}/cargo/bin/sed" ""

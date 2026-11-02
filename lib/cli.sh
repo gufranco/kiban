@@ -28,13 +28,25 @@ kb_flavor_version() {
   }'
 }
 
+kb_tool_line() {
+  kb_tl_line="$(printf '%s\n' "$1" | awk '/BusyBox|This is not GNU/ { print; exit }')"
+  if [ -z "${kb_tl_line}" ]; then
+    kb_tl_line="$(printf '%s\n' "$1" | sed -n '1p')"
+  fi
+  printf '%s\n' "${kb_tl_line}"
+}
+
 kb_tool_flavor() {
   kb_tf_raw="$("$1" --version 2>&1 </dev/null)" || true
-  kb_tf_text="$(printf '%s\n' "${kb_tf_raw}" | sed -n '1p')"
+  kb_tf_text="$(kb_tool_line "${kb_tf_raw}")"
   kb_tf_version="$(kb_flavor_version "${kb_tf_text}")"
   case "${kb_tf_text}" in
   *uutils*) kb_tf_name=uutils ;;
   *BusyBox*) kb_tf_name=busybox ;;
+  *"This is not GNU"*)
+    kb_tf_name=busybox
+    kb_tf_version=""
+    ;;
   *GNU*) kb_tf_name=gnu ;;
   *mawk*) kb_tf_name=mawk ;;
   *"awk version"*) kb_tf_name=bsd ;;
