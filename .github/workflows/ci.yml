@@ -197,7 +197,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install shells and tools
-        run: brew install --formula bats-core bash dash-shell zsh parallel
+        run: brew install --formula bats-core bash dash-shell zsh parallel docker colima fzf
       - name: Install the Homebrew toolset
         if: matrix.toolset == 'homebrew'
         run: brew install --formula coreutils findutils gnu-sed gawk grep diffutils openssl@3 perl
