@@ -1,0 +1,44 @@
+#compdef kiban
+
+_kiban() {
+  local -a commands
+  commands=(
+    'start:start Docker'
+    'stop:stop Docker'
+    'up:create or start services'
+    'down:stop containers'
+    'shell:open a shell in a container'
+    'logs:follow a container log'
+    'status:show every service'
+    'reset:delete a service and its data'
+    'prune:delete every container, image, volume and build cache'
+    'purge:prune, then delete the VM'
+    'config:show every setting'
+    'doctor:check the tools kiban needs'
+    'version:print the version'
+    'help:print usage'
+  )
+
+  if (( CURRENT == 2 )) && [[ "${words[2]}" != -* ]]; then
+    _describe command commands
+    return
+  fi
+
+  _arguments \
+    '--cpus[VM CPUs]:cpus:' \
+    '--memory[VM memory in GiB]:memory:' \
+    '--disk[VM disk in GiB]:disk:' \
+    '--arch[VM architecture]:arch:(aarch64 x86_64)' \
+    '--vm-type[VM type]:type:(vz qemu krunkit)' \
+    '--rosetta[run x86_64 images through Rosetta]' \
+    '--no-rosetta[emulate x86_64 images]' \
+    '--mount-type[how the home folder reaches the VM]:type:(virtiofs 9p sshfs)' \
+    '--mount-inotify[pass file events into the VM]' \
+    '--no-mount-inotify[keep file events out of the VM]' \
+    '--dns[DNS servers for the VM]:servers:' \
+    '--data-dir[folder for service data]:path:_files -/' \
+    '--json[print status or config as JSON]' \
+    '*:service:(mongo postgres redis valkey redict ubuntu)'
+}
+
+_kiban "$@"

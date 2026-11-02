@@ -1,0 +1,254 @@
+#!/bin/sh
+[ -n "${ZSH_VERSION:-}" ] && emulate sh
+
+for kb_inherited in $(env | sed -n 's/^\(KB_[A-Za-z0-9_]*\)=.*/\1/p'); do
+  unset "${kb_inherited}"
+done
+
+kb_self="$0"
+case "${kb_self}" in
+*/*) ;;
+*) kb_self="$(command -v -- "${kb_self}")" ;;
+esac
+KB_LIB="$(cd "${kb_self%/*}/../lib" && pwd)" || exit 1
+
+KB_PROG=kiban
+# shellcheck source=SCRIPTDIR/../lib/core.sh
+. "${KB_LIB}/core.sh"
+# shellcheck source=SCRIPTDIR/../lib/settings.sh
+. "${KB_LIB}/settings.sh"
+# shellcheck source=SCRIPTDIR/../lib/cli.sh
+. "${KB_LIB}/cli.sh"
+# shellcheck source=SCRIPTDIR/../lib/engine.sh
+. "${KB_LIB}/engine.sh"
+# shellcheck source=SCRIPTDIR/../lib/services.sh
+. "${KB_LIB}/services.sh"
+
+kb_usage() {
+  cat <<'USAGE'
+kiban - run Docker and local dev databases at full speed on macOS and Linux
+
+usage:
+  kiban                             ask what to do
+  kiban start [profile]             start Docker: a Colima VM on macOS, the
+                                    engine itself on Linux
+  kiban stop [profile]              stop it
+  kiban up <service>...             create or start mongo, postgres, redis,
+                                    valkey, redict or ubuntu
+  kiban down [container]...         stop containers, picking when none given
+  kiban shell [container]           open a shell in a container
+  kiban logs [container]            follow a container's log
+  kiban status                      show every service and its address
+  kiban reset <service>             delete a service's container and data
+  kiban prune [profile]             delete every container, image, volume and
+                                    build cache
+  kiban purge [profile]             prune, then delete the VM itself
+  kiban config                      show every setting and where it came from
+  kiban doctor                      check the tools kiban needs
+  kiban version                     print the version
+  kiban help                        print this page
+
+options:
+  --cpus N | --memory GIB | --disk GIB
+                                    VM size. defaults scale with this machine:
+                                    half its cores up to 4, half its memory up
+                                    to 8 GiB, a quarter of its disk up to 64
+  --arch aarch64|x86_64             VM architecture (default this machine's)
+  --vm-type vz|qemu|krunkit         VM type (default vz)
+  --rosetta | --no-rosetta          run x86_64 images through Rosetta (default
+                                    yes on Apple Silicon)
+  --mount-type virtiofs|9p|sshfs    how the home folder reaches the VM
+                                    (default virtiofs)
+  --mount-inotify | --no-mount-inotify
+                                    pass file events into the VM (default no)
+  --dns LIST                        DNS servers for the VM, separated by commas
+                                    (default the host's)
+  --data-dir PATH                   folder for service data (default ~/Docker)
+  --json                            print status or config as JSON
+
+environment:
+  Every setting has a KIBAN_ variable that sets its default: KIBAN_PROFILE,
+  KIBAN_CPUS, KIBAN_MEMORY, KIBAN_DISK, KIBAN_ARCH, KIBAN_VM_TYPE,
+  KIBAN_ROSETTA, KIBAN_MOUNT_TYPE, KIBAN_MOUNT_INOTIFY, KIBAN_DNS,
+  KIBAN_DATA_DIR and KIBAN_JSON, and per service KIBAN_<SERVICE>_IMAGE and
+  _PORT, KIBAN_MONGO_USER, _PASSWORD, KIBAN_POSTGRES_USER, _PASSWORD and
+  _SHM, and KIBAN_<SERVICE>_MAXMEMORY for redis, valkey and redict.
+  kiban config lists them all. an option on the command line wins.
+
+notes:
+  On a Mac kiban reads the hardware, so a terminal running under Rosetta
+  still gets a native aarch64 VM. On Linux Docker runs with no VM at all.
+  Every service listens on 127.0.0.1 only.
+
+examples:
+  kiban start
+  kiban up postgres redis
+  KIBAN_POSTGRES_PORT=5433 kiban up postgres
+  kiban --cpus 4 --memory 8 start work
+  kiban config
+USAGE
+}
+
+kb_mark() {
+  KB_OPTIONS_SET="${KB_OPTIONS_SET} $1"
+}
+
+kb_option_flag() {
+  case "$1" in
+  --rosetta) KIBAN_ROSETTA=y ;;
+  --no-rosetta) KIBAN_ROSETTA=n ;;
+  --mount-inotify) KIBAN_MOUNT_INOTIFY=y ;;
+  --no-mount-inotify) KIBAN_MOUNT_INOTIFY=n ;;
+  --json) KIBAN_JSON=y ;;
+  *) return 1 ;;
+  esac
+  case "$1" in
+  *rosetta) kb_mark ROSETTA ;;
+  *inotify) kb_mark MOUNT_INOTIFY ;;
+  *) ;;
+  esac
+  return 0
+}
+
+kb_option_value() {
+  case "$1" in
+  --cpus) KIBAN_CPUS="$2" && kb_mark CPUS ;;
+  --memory) KIBAN_MEMORY="$2" && kb_mark MEMORY ;;
+  --disk) KIBAN_DISK="$2" && kb_mark DISK ;;
+  --arch) KIBAN_ARCH="$2" && kb_mark ARCH ;;
+  --vm-type) KIBAN_VM_TYPE="$2" && kb_mark VM_TYPE ;;
+  --mount-type) KIBAN_MOUNT_TYPE="$2" && kb_mark MOUNT_TYPE ;;
+  --dns) KIBAN_DNS="$2" && kb_mark DNS ;;
+  *) KIBAN_DATA_DIR="$2" && kb_mark DATA_DIR ;;
+  esac
+}
+
+kb_check_number() {
+  kb_env "$1"
+  [ -n "${KB_ENV}" ] || return 0
+  kb_is_uint "${KB_ENV}" && [ "${KB_ENV}" -gt 0 ] && return 0
+  kb_error "$2 must be a whole number of 1 or more, got: ${KB_ENV}"
+  return 1
+}
+
+kb_check_choice() {
+  kb_env "$1"
+  [ -n "${KB_ENV}" ] || return 0
+  case " $3 " in
+  *" ${KB_ENV} "*) return 0 ;;
+  *) ;;
+  esac
+  kb_error "$2 must be one of $3, got: ${KB_ENV}"
+  return 1
+}
+
+kb_check_settings() {
+  kb_check_number CPUS --cpus && kb_check_number MEMORY --memory && kb_check_number DISK --disk &&
+    kb_check_choice ARCH --arch "aarch64 x86_64" &&
+    kb_check_choice VM_TYPE --vm-type "vz qemu krunkit" &&
+    kb_check_choice MOUNT_TYPE --mount-type "virtiofs 9p sshfs" &&
+    kb_check_choice ROSETTA KIBAN_ROSETTA "y n" &&
+    kb_check_choice MOUNT_INOTIFY KIBAN_MOUNT_INOTIFY "y n"
+}
+
+kb_profile_arg() {
+  if [ "$#" -gt 1 ]; then
+    kb_hint "unexpected extra argument '$2'"
+    return 1
+  fi
+  if [ "$#" -eq 1 ]; then
+    KIBAN_PROFILE="$1"
+    KB_S_PROFILE="$1"
+    KB_CONTEXT=default
+    [ "${KB_OS}" = Darwin ] && KB_CONTEXT="colima-$1"
+    [ "${KB_OS}" = Darwin ] && [ "$1" = default ] && KB_CONTEXT=colima
+    kb_mark PROFILE
+  fi
+  return 0
+}
+
+kb_no_args() {
+  if [ "$#" -gt 0 ]; then
+    kb_hint "unexpected extra argument '$1'"
+    return 1
+  fi
+  return 0
+}
+
+kb_menu() {
+  printf 'What would you like to do?\n' >&2
+  printf '  %s\n' "1) start Docker" "2) stop Docker" "3) start a service" "4) stop containers" \
+    "5) show status" "6) open a shell" "7) follow a log" "8) show settings" >&2
+  printf 'Choice: ' >&2
+  kb_mn_answer=""
+  IFS= read -r kb_mn_answer || [ -n "${kb_mn_answer}" ] || return 1
+  case "${kb_mn_answer}" in
+  1) kb_start ;;
+  2) kb_stop ;;
+  3) kb_menu_service ;;
+  4) kb_down ;;
+  5) kb_status ;;
+  6) kb_shell ;;
+  7) kb_logs ;;
+  8) kb_config ;;
+  *)
+    kb_error "not a listed choice: ${kb_mn_answer}"
+    return 1
+    ;;
+  esac
+}
+
+kb_menu_service() {
+  printf 'Which service? %s: ' "${KB_SERVICES}" >&2
+  kb_ms_answer=""
+  IFS= read -r kb_ms_answer || [ -n "${kb_ms_answer}" ] || return 1
+  # shellcheck disable=SC2086
+  kb_up ${kb_ms_answer}
+}
+
+kb_dispatch() {
+  kb_check_settings || return 1
+  kb_load_service_settings
+  if [ "$#" -eq 0 ]; then
+    if kb_interactive; then
+      kb_menu
+      return "$?"
+    fi
+    kb_hint "no command given"
+    return 1
+  fi
+  kb_ds_command="$1"
+  shift
+  case "${kb_ds_command}" in
+  start) kb_profile_arg "$@" && kb_start ;;
+  stop) kb_profile_arg "$@" && kb_stop ;;
+  prune) kb_profile_arg "$@" && kb_prune ;;
+  purge) kb_profile_arg "$@" && kb_purge ;;
+  up) kb_up "$@" ;;
+  down) kb_down "$@" ;;
+  reset) kb_reset "$@" ;;
+  shell) kb_shell "$@" ;;
+  logs) kb_logs "$@" ;;
+  status) kb_no_args "$@" && kb_status ;;
+  config) kb_no_args "$@" && kb_config ;;
+  *)
+    kb_hint "unknown command '${kb_ds_command}'"
+    return 1
+    ;;
+  esac
+}
+
+kb_main() {
+  kb_os_init
+  case "${1:-}" in
+  help | -h | --help) kb_usage ;;
+  version | -V | --version) kb_cli_version ;;
+  doctor) kb_doctor ;;
+  *)
+    KB_VALUE_OPTIONS="--cpus --memory --disk --arch --vm-type --mount-type --dns --data-dir"
+    kb_cli_parse "$@"
+    ;;
+  esac
+}
+
+kb_main "$@"

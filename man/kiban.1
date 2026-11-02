@@ -1,0 +1,136 @@
+.TH KIBAN 1 "2026-11-01" "kiban" "User Commands"
+.SH NAME
+kiban \- run Docker and local dev databases at full speed on macOS and Linux
+.SH SYNOPSIS
+.B kiban
+.RI [ options ] " command" " " [ arguments ]
+.br
+.B kiban doctor
+.br
+.B kiban version
+.br
+.B kiban help
+.SH DESCRIPTION
+.B kiban
+starts Docker and the databases a project needs. On a Mac it runs a Colima VM
+with Apple's Virtualization framework and virtiofs, sized from the machine. It
+reads the hardware, so a terminal running under Rosetta still gets a native
+aarch64 VM with Rosetta for x86_64 images. On Linux it drives the Docker engine
+itself, with no VM.
+.PP
+Every service listens on 127.0.0.1 only and keeps its data in named volumes
+plus a folder under the data directory.
+.SH COMMANDS
+.TP
+.BR start " [" \fIprofile\fR ]
+Start the VM on a Mac, or the Docker engine on Linux.
+.TP
+.BR stop " [" \fIprofile\fR ]
+Stop it.
+.TP
+.BI up " service" ...
+Create a service the first time, start it after that. The services are mongo,
+postgres, redis, valkey, redict and ubuntu.
+.TP
+.BR down " [" \fIcontainer\fR ...]
+Stop containers. With none named, pick from the running ones.
+.TP
+.BR shell " [" \fIcontainer\fR ]
+Open a shell in a container, bash when it has one.
+.TP
+.BR logs " [" \fIcontainer\fR ]
+Follow a container's log.
+.TP
+.B status
+Show every service, its state, its address and its image.
+.TP
+.BI reset " service"
+Delete a service's container, volumes and data folder, after the service name
+is typed back.
+.TP
+.BR prune " [" \fIprofile\fR ]
+Delete every container, image, volume and build cache, after the profile name
+is typed back. Anything labelled keep survives.
+.TP
+.BR purge " [" \fIprofile\fR ]
+Prune, then delete the VM and its disks on a Mac.
+.TP
+.B config
+Show every setting, its value and where it came from.
+.TP
+.B doctor
+List the tools kiban needs and whether each is installed. Exits non-zero only
+when a required tool is missing.
+.TP
+.B version
+Print the version and the platform.
+.TP
+.B help
+Print the usage page.
+.SH OPTIONS
+.TP
+.BI \-\-cpus " N" ", " \-\-memory " GIB" ", " \-\-disk " GIB"
+VM size. The defaults scale with the machine: half its cores up to 4, half its
+memory up to 8 GiB, a quarter of its disk up to 64 GiB.
+.TP
+.BI \-\-arch " aarch64" | x86_64
+VM architecture. Default the machine's.
+.TP
+.BI \-\-vm\-type " vz" | qemu | krunkit
+VM type. Default vz.
+.TP
+.BR \-\-rosetta ", " \-\-no\-rosetta
+Run x86_64 images through Rosetta. Default yes on Apple Silicon.
+.TP
+.BI \-\-mount\-type " virtiofs" | 9p | sshfs
+How the home folder reaches the VM. Default virtiofs.
+.TP
+.BR \-\-mount\-inotify ", " \-\-no\-mount\-inotify
+Pass file events into the VM. Default no.
+.TP
+.BI \-\-dns " list"
+DNS servers for the VM, separated by commas. Default the host's.
+.TP
+.BI \-\-data\-dir " path"
+Folder for service data. Default ~/Docker.
+.TP
+.B \-\-json
+Print status or config as JSON.
+.PP
+Every option that takes a value also takes the form
+.IR \-\-name = value ,
+and
+.B \-\-
+ends the options.
+.SH ENVIRONMENT
+Every setting has a variable that sets its default:
+.BR KIBAN_PROFILE ,
+.BR KIBAN_CPUS ,
+.BR KIBAN_MEMORY ,
+.BR KIBAN_DISK ,
+.BR KIBAN_ARCH ,
+.BR KIBAN_VM_TYPE ,
+.BR KIBAN_ROSETTA ,
+.BR KIBAN_MOUNT_TYPE ,
+.BR KIBAN_MOUNT_INOTIFY ,
+.BR KIBAN_DNS ,
+.BR KIBAN_DATA_DIR
+and
+.BR KIBAN_JSON ,
+and per service
+.BI KIBAN_ SERVICE _IMAGE
+and
+.BI KIBAN_ SERVICE _PORT ,
+.BR KIBAN_MONGO_USER ,
+.BR KIBAN_MONGO_PASSWORD ,
+.BR KIBAN_POSTGRES_USER ,
+.BR KIBAN_POSTGRES_PASSWORD ,
+.B KIBAN_POSTGRES_SHM
+and
+.BI KIBAN_ SERVICE _MAXMEMORY
+for redis, valkey and redict. An option on the command line wins.
+.SH EXIT STATUS
+0 on success, 1 on any failure or refusal.
+.SH SEE ALSO
+.BR colima (1),
+.BR docker (1)
