@@ -16,6 +16,6 @@ docker run --rm \
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq >/dev/null
     apt-get install -y -qq --no-install-recommends \
-      bats zsh dash sudo ca-certificates parallel procps python3 mandoc >/dev/null
+      bats zsh dash sudo ca-certificates git parallel procps python3 mandoc >/dev/null
     exec "$@"
   ' sh "$@"
