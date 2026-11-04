@@ -218,7 +218,7 @@ kb_ui_table() {
 }
 
 kb_ui_table_body() {
-  awk -F '\t' -v acc="${KB_UI_ACCENT}" -v ok="${KB_UI_OK}" -v warn="${KB_UI_WARN}" \
+  LC_ALL=C awk -F '\t' -v acc="${KB_UI_ACCENT}" -v ok="${KB_UI_OK}" -v warn="${KB_UI_WARN}" \
     -v bad="${KB_UI_ERR}" -v txt="${KB_UI_TEXT}" -v mut="${KB_UI_MUTED}" -v dash="$1" \
     -f "${KB_LIB}/table.awk"
 }
