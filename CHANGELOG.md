@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.1.0](https://github.com/gufranco/kiban/compare/v1.0.1...v1.1.0) (2026-11-04)
+
+
+### Features
+
+* draw the terminal interface with gum ([386cb95](https://github.com/gufranco/kiban/commit/386cb95f873daae153ffc4f5269ecc85f9fdb090))
+
 ## [1.0.1](https://github.com/gufranco/kiban/compare/v1.0.0...v1.0.1) (2026-11-02)
 
 
