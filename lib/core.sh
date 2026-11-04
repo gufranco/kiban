@@ -3,7 +3,7 @@
 # shellcheck source=SCRIPTDIR/state.sh
 . "${KB_LIB:?}/state.sh"
 
-KIBAN_VERSION="1.1.0"
+KIBAN_VERSION="1.1.1"
 
 kb_version() {
   printf '%s %s\n' "${1:-${KB_PROG}}" "${KIBAN_VERSION}"
