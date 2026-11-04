@@ -5,6 +5,10 @@ _kiban() {
   local cur prev words
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD - 1]}"
+  if [[ "${COMP_WORDS[COMP_CWORD - 1]}" == "--theme" ]]; then
+    COMPREPLY=($(compgen -W "kodougu catppuccin-mocha catppuccin-latte dracula nord gruvbox tokyo-night mono" -- "${COMP_WORDS[COMP_CWORD]}"))
+    return
+  fi
 
   case "${prev}" in
   --arch)
@@ -30,7 +34,7 @@ _kiban() {
   *) ;;
   esac
   if [[ "${cur}" == -* ]]; then
-    COMPREPLY=($(compgen -W "--cpus --memory --disk --arch --vm-type --rosetta --no-rosetta --mount-type --mount-inotify --no-mount-inotify --dns --data-dir --json" -- "${cur}"))
+    COMPREPLY=($(compgen -W "--cpus --memory --disk --arch --vm-type --rosetta --no-rosetta --mount-type --mount-inotify --no-mount-inotify --dns --data-dir --json --theme" -- "${cur}"))
     return
   fi
   words="mongo postgres redis valkey redict ubuntu"

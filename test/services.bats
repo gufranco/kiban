@@ -145,6 +145,30 @@ teardown() {
   [[ "${output}" == *"kiban: could not create ${WORK}/blocker/Redis." ]]
 }
 
+@test "up on macOS refuses a data folder the Docker VM cannot see" {
+  # Arrange
+  local outside="${WORK}/outside"
+
+  # Act
+  KIBAN_DATA_DIR="${outside}" run kb_test_run up redis
+
+  # Assert
+  [[ "${status}" -eq 1 ]]
+  [[ "${output}" == *"kiban: ${outside}/Redis is outside ${HOME}, the only folder the Docker VM sees."* ]]
+}
+
+@test "up on Linux takes a data folder anywhere" {
+  # Arrange
+  export KIBAN_OS=Linux
+
+  # Act
+  KIBAN_DATA_DIR="${WORK}/anywhere" run kb_test_run up redis
+
+  # Assert
+  [[ "${status}" -eq 0 ]]
+  [[ -d "${WORK}/anywhere/Redis" ]]
+}
+
 @test "up with no service stops with the usage hint" {
   # Arrange
   local expected="kiban: no service given. run 'kiban help' for usage."

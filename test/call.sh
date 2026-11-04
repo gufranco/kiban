@@ -5,6 +5,8 @@ KB_LIB="$(cd "$(dirname "$0")/../lib" && pwd)" || exit 1
 
 # shellcheck source=SCRIPTDIR/../lib/core.sh
 . "${KB_LIB}/core.sh"
+# shellcheck source=SCRIPTDIR/../lib/ui.sh
+. "${KB_LIB}/ui.sh"
 # shellcheck source=SCRIPTDIR/../lib/settings.sh
 . "${KB_LIB}/settings.sh"
 # shellcheck source=SCRIPTDIR/../lib/cli.sh

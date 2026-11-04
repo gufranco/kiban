@@ -4,17 +4,46 @@
 . "${KB_LIB:?}/state.sh"
 
 kb_hint() {
-  kb_say 0 "${KB_PROG}: $1. run '${KB_PROG} help' for usage." >&2
+  kb_error "$1. run '${KB_PROG} help' for usage."
 }
 
 kb_cli_version() {
-  kb_version "${KB_PROG}"
   kb_cv_platform="$(uname -sr)" || kb_cv_platform="unknown"
+  if kb_ui_out; then
+    kb_cv_text="$(kb_version "${KB_PROG}")"
+    kb_cv_badge="$(kb_ui_badge "${KB_UI_ACCENT}" "${kb_cv_text}")"
+    kb_cv_chip="$(kb_ui_chip "platform ${kb_cv_platform}")"
+    kb_gum join --horizontal "${kb_cv_badge}" " " "${kb_cv_chip}"
+    return 0
+  fi
+  kb_version "${KB_PROG}"
   printf 'platform: %s\n' "${kb_cv_platform}"
 }
 
 kb_doctor_row() {
+  if kb_ui_out; then
+    case "$2" in
+    ok) kb_dw_state="@ok:ok" ;;
+    warn) kb_dw_state="@warn:warn" ;;
+    *) kb_dw_state="@bad:$2" ;;
+    esac
+    KB_DOCTOR_ROWS="${KB_DOCTOR_ROWS}$1	${kb_dw_state}	$3
+"
+    return 0
+  fi
   printf '%-18s %-8s %s\n' "$1" "$2" "$3"
+}
+
+kb_doctor_report() {
+  if ! kb_ui_out; then
+    return 0
+  fi
+  printf 'Tool\tState\tDetail\n%s' "${KB_DOCTOR_ROWS}" | kb_ui_table
+  if [ "$1" -ne 0 ]; then
+    kb_ui_log ERROR "a required tool is missing. install it and run kiban doctor again."
+    return 0
+  fi
+  kb_ui_done "Ready. Every tool kiban needs is here."
 }
 
 kb_flavor_version() {
@@ -89,6 +118,7 @@ kb_doctor_rosetta() {
 kb_doctor() {
   kb_dr_status=0
   kb_host_load
+  kb_doctor_tool gum "install with: brew install gum, or see https://github.com/charmbracelet/gum" || kb_dr_status=1
   kb_doctor_tool docker "required" || kb_dr_status=1
   for kb_dr_tool in awk sed; do
     kb_doctor_tool "${kb_dr_tool}" "required" || kb_dr_status=1
@@ -103,7 +133,8 @@ kb_doctor() {
     kb_doctor_tool sudo "required to start and stop the Docker engine" || kb_dr_status=1
     ;;
   esac
-  kb_doctor_tool fzf "optional, picks containers; a numbered menu otherwise" || true
+  kb_doctor_tool fzf "optional, picks containers without gum; a numbered menu otherwise" || true
+  kb_doctor_report "${kb_dr_status}"
   return "${kb_dr_status}"
 }
 

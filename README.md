@@ -22,6 +22,10 @@ One command, six services, and every value overridable from the environment. `ki
 
 ---
 
+<p align="center">
+  <img src="screens/hero.gif" alt="kiban running in a terminal, from the first prompt to the result" width="800">
+</p>
+
 ```console
 $ kiban status
 service    state      address           image
@@ -41,11 +45,12 @@ ubuntu     absent     -                 ubuntu:26.04
 
 | Tool | Why | Install |
 |:-----|:----|:--------|
+| [`gum`](https://github.com/charmbracelet/gum) | The terminal interface: menus, prompts, tables and colours | `brew install gum`. Installed automatically by the Homebrew formula |
 | POSIX `sh`, `awk`, `sed` | The tool itself | Preinstalled on macOS and Linux. `bash` is not required |
 | `docker` | The Docker CLI | `brew install docker`; on Linux, Docker Engine from Docker's apt repository |
 | `colima` | The VM on a Mac | `brew install colima` |
 | `systemctl`, `sudo` | Starting and stopping the engine on Linux | Preinstalled on Ubuntu |
-| `fzf` | Optional: picks containers; kiban falls back to a numbered menu | `brew install fzf`; `apt install fzf` |
+| `fzf` | Optional: picks containers where gum cannot draw; kiban falls back to a numbered menu | `brew install fzf`; `apt install fzf` |
 
 ### Install
 
@@ -67,6 +72,7 @@ make install
 
 ```console
 $ kiban doctor
+gum                ok       /opt/homebrew/bin/gum
 docker             ok       /opt/homebrew/bin/docker
 awk                ok       /opt/homebrew/opt/gawk/libexec/gnubin/awk, gnu 5.4.1
 sed                ok       /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed, gnu 4.10
@@ -88,7 +94,7 @@ fzf                ok       /opt/homebrew/bin/fzf
 | `kiban reset <service>` | Delete a service's container, volumes and data folder |
 | `kiban prune [profile]`, `kiban purge [profile]` | Delete every container, image, volume and build cache; `purge` also deletes the VM |
 | `kiban config` | Show every setting and where it came from |
-| `kiban` with no arguments | Offer a numbered menu when run in a terminal |
+| `kiban` with no arguments | Offer a menu when run in a terminal: a gum list, numbered without gum |
 | `kiban doctor`, `kiban version`, `kiban help` | Check the tools, print the version, print the usage page |
 
 `reset`, `prune` and `purge` change nothing until the service or profile name is typed back.
@@ -101,6 +107,14 @@ kiban --cpus 4 --memory 8 start work # a second VM called work
 ```
 
 kiban follows the shared command-line contract of its family, described in [FAMILY.md](FAMILY.md).
+
+### Themes
+
+On a terminal with `gum` installed, kiban draws its menus, prompts, tables and messages with gum; in a pipe or a script the output stays plain text. `--theme`, else `KIBAN_THEME`, else `KODOUGU_THEME` picks the colours, the last one shared by every kodougu tool: `kodougu` (default), `catppuccin-mocha`, `catppuccin-latte`, `dracula`, `nord`, `gruvbox`, `tokyo-night` or `mono`. `KODOUGU_ACCENT=#RRGGBB` replaces only the accent, and `NO_COLOR` turns colour off.
+
+```bash
+export KODOUGU_THEME=catppuccin-mocha
+```
 
 <a id="settings"></a>
 
@@ -133,6 +147,7 @@ KIBAN_DATA_DIR           $HOME/Docker               default
 | `KIBAN_<SERVICE>_IMAGE` | `mongo:8`, `postgres:18-alpine`, `redis:8-alpine`, `valkey/valkey:8-alpine`, `registry.redict.io/redict:7-alpine`, `ubuntu:26.04` |
 | `KIBAN_<SERVICE>_PORT` | mongo 27017, postgres 5432, redis 6379, valkey 7000, redict 6380 |
 | `KIBAN_MONGO_USER`, `KIBAN_MONGO_PASSWORD`, `KIBAN_POSTGRES_USER`, `KIBAN_POSTGRES_PASSWORD` | `mongo`, `mongo`, `postgres`, `postgres` |
+| `KIBAN_THEME`, `--theme` | `KODOUGU_THEME`, else `kodougu`; see Themes |
 | `KIBAN_POSTGRES_SHM`, `KIBAN_<SERVICE>_MAXMEMORY` | `1g`; `256mb` for redis, valkey and redict |
 
 <a id="speed"></a>
@@ -153,6 +168,43 @@ Every default image ships amd64 and arm64 builds, so services run without emulat
 
 Everything is POSIX `sh` with ShellCheck `-o all` at zero findings. The suites run on macOS under `/bin/sh` and `dash`, the system's bash 3.2 and zsh, and Homebrew's current bash and zsh, and on Ubuntu under `dash`, `bash`, `bash --posix` and `zsh` in a container. CI repeats them on the family's six toolsets, and `kiban doctor` names the flavor and version of `awk` and `sed`.
 
+<a id="screens"></a>
+
+## Screens
+
+<details>
+<summary>Every screen, recorded from a real run with <code>make screens</code></summary>
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="screens/menu.png" alt="kiban: The menu"><br><sub>The menu</sub></td>
+<td width="50%" valign="top"><img src="screens/services.png" alt="kiban: Marking a service to start"><br><sub>Marking a service to start</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/started.png" alt="kiban: The service started"><br><sub>The service started</sub></td>
+<td width="50%" valign="top"><img src="screens/status.png" alt="kiban: Every service and its address"><br><sub>Every service and its address</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/logs.png" alt="kiban: A container's log"><br><sub>A container's log</sub></td>
+<td width="50%" valign="top"><img src="screens/config.png" alt="kiban: Every setting and where it came from"><br><sub>Every setting and where it came from</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/reset.png" alt="kiban: The typed name, under the danger box"><br><sub>The typed name, under the danger box</sub></td>
+<td width="50%" valign="top"><img src="screens/reset-done.png" alt="kiban: The service reset"><br><sub>The service reset</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/error.png" alt="kiban: An error"><br><sub>An error</sub></td>
+<td width="50%" valign="top"><img src="screens/doctor.png" alt="kiban: doctor checks every tool it needs"><br><sub>doctor checks every tool it needs</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/themes.png" alt="kiban: The version badge in six themes"><br><sub>The version badge in six themes</sub></td>
+<td width="50%" valign="top"><img src="screens/help.png" alt="kiban: The help page"><br><sub>The help page</sub></td>
+</tr>
+</table>
+
+</details>
+
 <a id="development"></a>
 
 ## Development
@@ -165,6 +217,7 @@ Everything is POSIX `sh` with ShellCheck `-o all` at zero findings. The suites r
 | `make test-all` | The same tests under every shell, both builds of bash and zsh included on macOS |
 | `make test-linux` | The same tests in an Ubuntu container |
 | `make coverage` | bashcov line coverage on this Mac and in the Ubuntu container, merged, with the 100% gate CI enforces |
+| `make screens` | Record the README screens from the real tool with VHS, on macOS |
 
 No CI runner can start Colima, so the tests put fake `docker`, `colima`, `systemctl` and host tools on `PATH` and check every call kiban makes. Once CI passes on a push to `main`, semantic-release runs: a `feat` or `fix` commit publishes a release, updates `KIBAN_VERSION` in [`lib/core.sh`](lib/core.sh) and the CHANGELOG, and bumps the Homebrew formula.
 

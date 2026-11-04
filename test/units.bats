@@ -30,7 +30,8 @@ fake_tool() {
 
   # Assert
   [[ "${status}" -eq 0 ]]
-  [[ "${lines[0]}" == "docker             ok       ${FAKES}/docker" ]]
+  [[ "${lines[0]}" == "gum                ok       "* ]]
+  [[ "${lines[1]}" == "docker             ok       ${FAKES}/docker" ]]
   [[ "${output}" == *"colima             ok       ${FAKES}/colima"* ]]
   [[ "${output}" == *"${expected}"* ]]
   [[ "${output}" == *"fzf                ok       ${FAKES}/fzf"* ]]
@@ -84,8 +85,8 @@ fake_tool() {
 
   # Assert
   [[ "${status}" -eq 1 ]]
-  [[ "${lines[0]}" == "docker             missing  required" ]]
-  [[ "${output}" == *"fzf                missing  optional, picks containers; a numbered menu otherwise" ]]
+  [[ "${lines[1]}" == "docker             missing  required" ]]
+  [[ "${output}" == *"fzf                missing  optional, picks containers without gum; a numbered menu otherwise" ]]
 }
 
 @test "doctor fails on a Mac without colima and on Linux without systemctl" {

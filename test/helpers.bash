@@ -4,6 +4,8 @@ KIBAN_TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${KIBAN_TESTS_DIR}/.." && pwd)"
 KIBAN_TEST_OS="$(uname -s)"
 export KIBAN_TESTS_DIR REPO_DIR KIBAN_TEST_OS
+PATH="${KIBAN_TESTS_DIR}/bin:${PATH}"
+export PATH
 
 kb_test_write() {
   local name="$1"
