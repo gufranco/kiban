@@ -22,6 +22,10 @@
 
 ---
 
+<p align="center">
+  <img src="screens/hero.gif" alt="在终端中运行的 kiban：从第一个输入到结果" width="800">
+</p>
+
 ```console
 $ kiban status
 service    state      address           image
@@ -41,11 +45,12 @@ ubuntu     absent     -                 ubuntu:26.04
 
 | 工具 | 用途 | 安装 |
 |:-----|:-----|:-----|
+| [`gum`](https://github.com/charmbracelet/gum) | 终端界面：菜单、输入、表格和配色 | `brew install gum`。Homebrew formula 会自动安装 |
 | POSIX `sh`、`awk`、`sed` | 工具本身 | macOS 和 Linux 已预装。不需要 `bash` |
 | `docker` | Docker CLI | `brew install docker`；Linux 上用 Docker apt 软件源中的 Docker Engine |
 | `colima` | Mac 上的虚拟机 | `brew install colima` |
 | `systemctl`、`sudo` | 在 Linux 上启动和停止引擎 | Ubuntu 已预装 |
-| `fzf` | 可选：用于挑选容器；没有时 kiban 改用编号菜单 | `brew install fzf`；`apt install fzf` |
+| `fzf` | 可选：在 gum 无法绘制时挑选容器；没有时 kiban 改用编号菜单 | `brew install fzf`；`apt install fzf` |
 
 ### 安装
 
@@ -67,6 +72,7 @@ make install
 
 ```console
 $ kiban doctor
+gum                ok       /opt/homebrew/bin/gum
 docker             ok       /opt/homebrew/bin/docker
 awk                ok       /opt/homebrew/opt/gawk/libexec/gnubin/awk, gnu 5.4.1
 sed                ok       /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed, gnu 4.10
@@ -88,7 +94,7 @@ fzf                ok       /opt/homebrew/bin/fzf
 | `kiban reset <service>` | 删除服务的容器、卷和数据文件夹 |
 | `kiban prune [profile]`、`kiban purge [profile]` | 删除所有容器、镜像、卷和构建缓存；`purge` 还会删除虚拟机 |
 | `kiban config` | 显示每个设置及其来源 |
-| 不带参数的 `kiban` | 在终端中运行时显示编号菜单 |
+| 不带参数的 `kiban` | 在终端中运行时显示菜单：gum 列表，没有 gum 时为编号菜单 |
 | `kiban doctor`、`kiban version`、`kiban help` | 检查工具、显示版本、显示用法说明 |
 
 在重新输入服务或配置名称之前，`reset`、`prune` 和 `purge` 不会做任何改动。
@@ -101,6 +107,14 @@ kiban --cpus 4 --memory 8 start work # 名为 work 的第二台虚拟机
 ```
 
 kiban 遵循家族共享的命令行约定，内容见 [FAMILY.md](FAMILY.md)。
+
+### 主题
+
+在装有 `gum` 的终端里，kiban 用 gum 绘制菜单、输入、表格和消息；在管道或脚本中，输出仍是纯文本。配色依次由 `--theme`、`KIBAN_THEME`、`KODOUGU_THEME` 决定，最后一个由所有 kodougu 工具共用：`kodougu`（默认）、`catppuccin-mocha`、`catppuccin-latte`、`dracula`、`nord`、`gruvbox`、`tokyo-night` 或 `mono`。`KODOUGU_ACCENT=#RRGGBB` 只替换强调色，`NO_COLOR` 关闭颜色。
+
+```bash
+export KODOUGU_THEME=catppuccin-mocha
+```
 
 <a id="settings"></a>
 
@@ -133,6 +147,7 @@ KIBAN_DATA_DIR           /Users/gufranco/Docker               default
 | `KIBAN_<SERVICE>_IMAGE` | `mongo:8`、`postgres:18-alpine`、`redis:8-alpine`、`valkey/valkey:8-alpine`、`registry.redict.io/redict:7-alpine`、`ubuntu:26.04` |
 | `KIBAN_<SERVICE>_PORT` | mongo 27017、postgres 5432、redis 6379、valkey 7000、redict 6380 |
 | `KIBAN_MONGO_USER`、`KIBAN_MONGO_PASSWORD`、`KIBAN_POSTGRES_USER`、`KIBAN_POSTGRES_PASSWORD` | `mongo`、`mongo`、`postgres`、`postgres` |
+| `KIBAN_THEME`、`--theme` | `KODOUGU_THEME`，否则 `kodougu`；见主题一节 |
 | `KIBAN_POSTGRES_SHM`、`KIBAN_<SERVICE>_MAXMEMORY` | `1g`；redis、valkey 和 redict 为 `256mb` |
 
 <a id="speed"></a>
@@ -153,6 +168,43 @@ KIBAN_DATA_DIR           /Users/gufranco/Docker               default
 
 全部使用 POSIX `sh` 编写，ShellCheck `-o all` 零警告。测试在 macOS 上于 `/bin/sh` 和 `dash`、系统自带的 bash 3.2 和 zsh、Homebrew 最新的 bash 和 zsh 下运行，在 Ubuntu 上于容器中的 `dash`、`bash`、`bash --posix` 和 `zsh` 下运行。CI 会在家族的六种工具集上重复这些测试，`kiban doctor` 会写出 `awk` 和 `sed` 的种类与版本。
 
+<a id="screens"></a>
+
+## 界面
+
+<details>
+<summary>全部界面，均由 <code>make screens</code> 录自真实运行</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="screens/menu.png" alt="kiban: 菜单"><br><sub>菜单</sub></td>
+<td width="50%" valign="top"><img src="screens/services.png" alt="kiban: 标记要启动的服务"><br><sub>标记要启动的服务</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/started.png" alt="kiban: 已启动的服务"><br><sub>已启动的服务</sub></td>
+<td width="50%" valign="top"><img src="screens/status.png" alt="kiban: 每个服务及其地址"><br><sub>每个服务及其地址</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/logs.png" alt="kiban: 容器的日志"><br><sub>容器的日志</sub></td>
+<td width="50%" valign="top"><img src="screens/config.png" alt="kiban: 每项设置及其来源"><br><sub>每项设置及其来源</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/reset.png" alt="kiban: 危险框下输入名称"><br><sub>危险框下输入名称</sub></td>
+<td width="50%" valign="top"><img src="screens/reset-done.png" alt="kiban: 已重置的服务"><br><sub>已重置的服务</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/error.png" alt="kiban: 错误"><br><sub>错误</sub></td>
+<td width="50%" valign="top"><img src="screens/doctor.png" alt="kiban: doctor 检查所需的每个工具"><br><sub>doctor 检查所需的每个工具</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/themes.png" alt="kiban: 六种主题下的版本标记"><br><sub>六种主题下的版本标记</sub></td>
+<td width="50%" valign="top"><img src="screens/help.png" alt="kiban: 帮助页"><br><sub>帮助页</sub></td>
+</tr>
+</table>
+
+</details>
+
 <a id="development"></a>
 
 ## 开发
@@ -165,6 +217,7 @@ KIBAN_DATA_DIR           /Users/gufranco/Docker               default
 | `make test-all` | 在每种 shell 下运行同样的测试，macOS 上包括 bash 和 zsh 的两个版本 |
 | `make test-linux` | 在 Ubuntu 容器中运行同样的测试 |
 | `make coverage` | 合并本机与 Ubuntu 容器中的 bashcov 行覆盖率，并执行与 CI 相同的 100% 门槛 |
+| `make screens` | 在 macOS 上用 VHS 从真实工具录制 README 的界面 |
 
 CI 运行器无法启动 Colima，因此测试把伪造的 `docker`、`colima`、`systemctl` 和主机工具放在 `PATH` 中，检查 kiban 的每一次调用。推送到 `main` 且 CI 通过后，semantic-release 会运行：`feat` 或 `fix` 提交会发布新版本，更新 [`lib/core.sh`](lib/core.sh) 中的 `KIBAN_VERSION` 和 CHANGELOG，并更新 Homebrew formula。
 

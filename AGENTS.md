@@ -19,8 +19,8 @@ Guidance for anyone, human or agent, changing kiban. What kiban is and how to us
 ## Names
 
 - Globals carry `KB_`; function-scoped variables carry a per-function `kb_` prefix. Resolved settings live in `KB_S_<SETTING>`.
-- Settings come from `KIBAN_<SETTING>`; test switches are `KIBAN_OS`, `KIBAN_TERMINAL`, `KIBAN_INTERACTIVE`, `KIBAN_TEST_SHELLS` and `KIBAN_TEST_RECORD`.
-- Output goes through `kb_info`, `kb_say`, `kb_success`, `kb_error` and `kb_warning`.
+- Settings come from `KIBAN_<SETTING>`; test switches are `KIBAN_OS`, `KIBAN_TERMINAL`, `KIBAN_INTERACTIVE`, `KIBAN_TEST_SHELLS`, `KIBAN_TEST_RECORD`, `KIBAN_TEST_GUM`, `KIBAN_TEST_GUM_LOG`, `KIBAN_TEST_GUM_ANSWERS` and `KIBAN_TEST_GUM_SPIN`.
+- Output goes through `kb_info`, `kb_say`, `kb_success`, `kb_error` and `kb_warning`, which hand over to the `kb_ui_` helpers in [`lib/ui.sh`](lib/ui.sh) where gum draws.
 
 ## Behaviour
 
@@ -42,6 +42,7 @@ Guidance for anyone, human or agent, changing kiban. What kiban is and how to us
 ## Release
 
 - `KIBAN_VERSION` lives in [`lib/core.sh`](lib/core.sh).
+- The tap's `Formula/kiban.rb` depends on `docker` and `gum`, and on `colima` and `docker-compose` on macOS.
 
 ## Gaps against FAMILY.md
 

@@ -223,10 +223,16 @@ kb_config() {
   kb_cf_json=""
   kb_cf_names="${KB_SERVICE_NAMES}"
   [ "${KB_OS}" = Darwin ] && kb_cf_names="${KB_VM_NAMES} ${KB_SERVICE_NAMES}"
-  [ "${KIBAN_JSON:-n}" = y ] || printf '%-24s %-36s %s\n' setting value from
+  kb_cf_rows=""
+  kb_cf_drawn=no
+  [ "${KIBAN_JSON:-n}" = y ] || ! kb_ui_out || kb_cf_drawn=yes
+  [ "${KIBAN_JSON:-n}" = y ] || [ "${kb_cf_drawn}" = yes ] || printf '%-24s %-36s %s\n' setting value from
   for kb_cf_name in ${kb_cf_names}; do
     kb_resolve "${kb_cf_name}"
-    if [ "${KIBAN_JSON:-n}" = y ]; then
+    if [ "${kb_cf_drawn}" = yes ]; then
+      kb_cf_rows="${kb_cf_rows}KIBAN_${kb_cf_name}	${KB_VALUE:--}	@mut:${KB_FROM}
+"
+    elif [ "${KIBAN_JSON:-n}" = y ]; then
       kb_cf_quoted="$(kb_json_string "${KB_VALUE}")"
       kb_cf_json="${kb_cf_json}${kb_cf_json:+,}\"KIBAN_${kb_cf_name}\":{\"value\":${kb_cf_quoted},\"from\":\"${KB_FROM}\"}"
     else
@@ -234,6 +240,7 @@ kb_config() {
     fi
   done
   [ "${KIBAN_JSON:-n}" = y ] && printf '{%s}\n' "${kb_cf_json}"
+  [ "${kb_cf_drawn}" = no ] || printf 'Setting\tValue\tFrom\n%s' "${kb_cf_rows}" | kb_ui_table
   return 0
 }
 

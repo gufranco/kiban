@@ -15,6 +15,8 @@ KB_LIB="$(cd "${kb_self%/*}/../lib" && pwd)" || exit 1
 KB_PROG=kiban
 # shellcheck source=SCRIPTDIR/../lib/core.sh
 . "${KB_LIB}/core.sh"
+# shellcheck source=SCRIPTDIR/../lib/ui.sh
+. "${KB_LIB}/ui.sh"
 # shellcheck source=SCRIPTDIR/../lib/settings.sh
 . "${KB_LIB}/settings.sh"
 # shellcheck source=SCRIPTDIR/../lib/cli.sh
@@ -25,6 +27,14 @@ KB_PROG=kiban
 . "${KB_LIB}/services.sh"
 
 kb_usage() {
+  if kb_ui_out; then
+    kb_usage_text | kb_ui_markdown | kb_gum format --theme "${KB_UI_HELP}"
+    return 0
+  fi
+  kb_usage_text
+}
+
+kb_usage_text() {
   cat <<'USAGE'
 kiban - run Docker and local dev databases at full speed on macOS and Linux
 
@@ -65,6 +75,8 @@ options:
                                     (default the host's)
   --data-dir PATH                   folder for service data (default ~/Docker)
   --json                            print status or config as JSON
+  --theme NAME                      colours of the terminal interface, see
+                                    notes
 
 environment:
   Every setting has a KIBAN_ variable that sets its default: KIBAN_PROFILE,
@@ -79,6 +91,12 @@ notes:
   On a Mac kiban reads the hardware, so a terminal running under Rosetta
   still gets a native aarch64 VM. On Linux Docker runs with no VM at all.
   Every service listens on 127.0.0.1 only.
+
+  On a terminal with gum installed, kiban draws its menus, prompts, tables
+  and results with gum. --theme, else KIBAN_THEME, else KODOUGU_THEME picks
+  the colours: kodougu, catppuccin-mocha, catppuccin-latte, dracula, nord,
+  gruvbox, tokyo-night or mono. KODOUGU_ACCENT=#RRGGBB replaces only the
+  accent, and NO_COLOR turns colour off.
 
 examples:
   kiban start
@@ -175,7 +193,27 @@ kb_no_args() {
   return 0
 }
 
+kb_menu_drawn() {
+  kb_ui_header
+  kb_md_choice="$(kb_ui_choose "What would you like to do?" "Start Docker" "Stop Docker" "Start services" "Stop containers" "Show every service" "Open a shell in a container" "Follow a container's log" "Show every setting")" || return 1
+  case "${kb_md_choice}" in
+  "Start Docker") kb_start ;;
+  "Stop Docker") kb_stop ;;
+  "Start services") kb_menu_service ;;
+  "Stop containers") kb_down ;;
+  "Show every service") kb_status ;;
+  "Open a shell in a container") kb_shell ;;
+  "Follow a container's log") kb_logs ;;
+  "Show every setting") kb_config ;;
+  *) return 1 ;;
+  esac
+}
+
 kb_menu() {
+  if kb_ui_prompts; then
+    kb_menu_drawn
+    return
+  fi
   printf 'What would you like to do?\n' >&2
   printf '  %s\n' "1) start Docker" "2) stop Docker" "3) start a service" "4) stop containers" \
     "5) show status" "6) open a shell" "7) follow a log" "8) show settings" >&2
@@ -199,6 +237,17 @@ kb_menu() {
 }
 
 kb_menu_service() {
+  if kb_ui_prompts; then
+    # shellcheck disable=SC2086
+    kb_ms_answer="$(kb_ui_choose "x marks a service, Enter starts every marked one" --no-limit ${KB_SERVICES})" || return 1
+    if [ -z "${kb_ms_answer}" ]; then
+      kb_error "nothing was marked. press x on each service to start, then Enter."
+      return 1
+    fi
+    # shellcheck disable=SC2086
+    kb_up ${kb_ms_answer}
+    return
+  fi
   printf 'Which service? %s: ' "${KB_SERVICES}" >&2
   kb_ms_answer=""
   IFS= read -r kb_ms_answer || [ -n "${kb_ms_answer}" ] || return 1
@@ -239,6 +288,44 @@ kb_dispatch() {
 }
 
 kb_main() {
+  kb_mn_count=$#
+  kb_mn_literal=no
+  while [ "${kb_mn_count}" -gt 0 ]; do
+    kb_mn_arg="$1"
+    shift
+    kb_mn_count=$((kb_mn_count - 1))
+    case "${kb_mn_literal}:${kb_mn_arg}" in
+    no:--) kb_mn_literal=yes ;;
+    no:--theme=*)
+      KB_THEME="${kb_mn_arg#--theme=}"
+      continue
+      ;;
+    no:--theme)
+      [ "${kb_mn_count}" -gt 0 ] || kb_main_stop "option '--theme' needs a value"
+      KB_THEME="$1"
+      shift
+      kb_mn_count=$((kb_mn_count - 1))
+      continue
+      ;;
+    *) ;;
+    esac
+    set -- "$@" "${kb_mn_arg}"
+  done
+  kb_ui_setup || kb_main_fail "${KB_UI_PROBLEM}"
+  kb_route "$@"
+}
+
+kb_main_stop() {
+  kb_hint "$1"
+  exit 1
+}
+
+kb_main_fail() {
+  kb_error "$1"
+  exit 1
+}
+
+kb_route() {
   kb_os_init
   case "${1:-}" in
   help | -h | --help) kb_usage ;;

@@ -79,12 +79,24 @@ kb_run_args() {
   kb_service_args "$1"
 }
 
+kb_data_reachable() {
+  kb_os_init
+  [ "${KB_OS}" = Darwin ] || return 0
+  case "$1" in
+  "${HOME}"/*) return 0 ;;
+  *) ;;
+  esac
+  kb_error "$1 is outside ${HOME}, the only folder the Docker VM sees. set --data-dir or KIBAN_DATA_DIR to a folder inside it."
+  return 1
+}
+
 kb_service_create() {
   kb_sc_data="$(kb_data_dir "$1")"
   mkdir -p "${kb_sc_data}" || {
     kb_error "could not create ${kb_sc_data}."
     return 1
   }
+  kb_data_reachable "${kb_sc_data}" || return 1
   kb_sc_args="$(kb_run_args "$1" "${kb_sc_data}")"
   kb_run_lines "${kb_sc_args}" kb_docker >/dev/null
 }
@@ -175,7 +187,10 @@ kb_status() {
       for (i = 1; i <= n; i++) print (list[i] in state ? state[list[i]] : "absent")
     }')"
   kb_st_json=""
-  [ "${KIBAN_JSON:-n}" = y ] || printf '%-10s %-10s %-17s %s\n' service state address image
+  kb_st_rows=""
+  kb_st_drawn=no
+  [ "${KIBAN_JSON:-n}" = y ] || ! kb_ui_out || kb_st_drawn=yes
+  [ "${KIBAN_JSON:-n}" = y ] || [ "${kb_st_drawn}" = yes ] || printf '%-10s %-10s %-17s %s\n' service state address image
   # shellcheck disable=SC2086
   set -- ${kb_st_states}
   for kb_st_name in ${KB_SERVICES}; do
@@ -184,12 +199,16 @@ kb_status() {
     [ -n "${KB_PORT}" ] && kb_st_address="127.0.0.1:${KB_PORT}"
     if [ "${KIBAN_JSON:-n}" = y ]; then
       kb_st_json="${kb_st_json}${kb_st_json:+,}{\"service\":\"${kb_st_name}\",\"state\":\"$1\",\"address\":\"${kb_st_address}\"}"
+    elif [ "${kb_st_drawn}" = yes ]; then
+      kb_st_rows="${kb_st_rows}${kb_st_name}	$1	${kb_st_address}	${KB_IMAGE}
+"
     else
       printf '%-10s %-10s %-17s %s\n' "${kb_st_name}" "$1" "${kb_st_address}" "${KB_IMAGE}"
     fi
     shift
   done
   [ "${KIBAN_JSON:-n}" = y ] && printf '[%s]\n' "${kb_st_json}"
+  [ "${kb_st_drawn}" = no ] || kb_status_drawn "${kb_st_rows%?}"
   return 0
 }
 
@@ -202,6 +221,10 @@ kb_pick() {
   if ! kb_interactive; then
     kb_hint "no container given"
     return 1
+  fi
+  if kb_ui_prompts; then
+    kb_pick_drawn "$1" "$2" "${kb_pk_names}"
+    return
   fi
   if kb_cmd_exists fzf && { [ "${KIBAN_TERMINAL:-}" = 1 ] || [ -t 2 ]; }; then
     if [ "$1" = multi ]; then
@@ -216,6 +239,30 @@ kb_pick() {
   kb_pk_answer=""
   IFS= read -r kb_pk_answer || [ -n "${kb_pk_answer}" ] || return 1
   kb_pick_match "${kb_pk_answer}" "${kb_pk_names}" "$1"
+}
+
+kb_pick_drawn() {
+  kb_pd_header="${2%%\?*}?"
+  if [ "$1" = multi ]; then
+    # shellcheck disable=SC2086
+    kb_pd_names="$(kb_ui_choose "${kb_pd_header}" --no-limit ${3})" || return 1
+    printf '%s\n' "${kb_pd_names}" | tr '\n' ' ' | sed 's/ $//'
+    printf '\n'
+    return 0
+  fi
+  # shellcheck disable=SC2086
+  kb_ui_choose "${kb_pd_header}" ${3}
+}
+
+kb_status_drawn() {
+  {
+    printf 'Service\tState\tAddress\tImage\n'
+    printf '%s\n' "$1" | awk -F '\t' '{
+      state = $2
+      tint = state == "running" ? "@ok:" : (state == "absent" ? "@mut:" : "@warn:")
+      printf "%s\t%s%s\t%s\t%s\n", $1, tint, state, $3, $4
+    }'
+  } | kb_ui_table
 }
 
 kb_pick_match() {
