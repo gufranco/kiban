@@ -178,29 +178,14 @@ fake_tool() {
   [[ "${output}" == '"a\"b\\c\u0009d\ne"' ]]
 }
 
-@test "a long error wraps on a terminal and stays whole in a pipe" {
-  # Arrange
-  local message="could not start the VM because colima answered with an error that is long enough to wrap"
-  local wrapped
-
-  # Act
-  wrapped="$(KIBAN_TERMINAL=1 kb_test_call kb_error "${message}" 2>&1)"
-  run kb_test_call kb_error "${message}"
-
-  # Assert
-  [[ "${wrapped}" == *$'\n'* ]]
-  [[ "${wrapped}" != *$'\n'*$'\n'* ]]
-  [[ "${output}" == "kiban: ${message}" ]]
-}
-
 @test "help and version never print a line wider than 80 columns" {
   # Arrange
   local page widest
 
   # Act
   page="$(
-    KIBAN_TERMINAL=1 kb_test_run help
-    KIBAN_TERMINAL=1 kb_test_run version
+    kb_test_run help
+    kb_test_run version
   )"
 
   # Assert

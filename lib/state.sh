@@ -5,7 +5,6 @@ export LC_ALL
 
 : "${KB_LIB:=}"
 : "${KB_OS:=${KIBAN_OS:-}}"
-: "${KB_WIDTH:=80}"
 : "${KB_PROG:=kiban}"
 : "${KB_VALUE_OPTIONS:=}"
 : "${KB_CLI_USED:=0}"

@@ -293,7 +293,7 @@ teardown() {
   local expected="kiban: unknown option '--nope'. run 'kiban help' for usage."
 
   # Act
-  KB_PROG=other KB_WIDTH=10 KIBAN_TERMINAL=1 run kb_test_run --nope
+  KB_PROG=other run kb_test_run --nope
 
   # Assert
   [[ "${status}" -eq 1 ]]
