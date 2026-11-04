@@ -9,46 +9,13 @@ kb_version() {
   printf '%s %s\n' "${1:-${KB_PROG}}" "${KIBAN_VERSION}"
 }
 
-kb_wrap() {
-  awk -v width="${KB_WIDTH}" -v indent="$1" '
-    function pad(n,   s) {
-      s = ""
-      while (n-- > 0) { s = s " " }
-      return s
-    }
-    length($0) <= width { print; next }
-    {
-      match($0, /^ */)
-      n = split($0, word, " ")
-      out = substr($0, 1, RLENGTH) word[1]
-      for (i = 2; i <= n; i++) {
-        if (length(out) + 1 + length(word[i]) > width) {
-          print out
-          out = pad(indent) word[i]
-        } else {
-          out = out " " word[i]
-        }
-      }
-      print out
-    }'
-}
-
-kb_terminal() {
-  [ "${KIBAN_TERMINAL:-}" = 1 ] || [ -t 1 ]
-}
-
 kb_say() {
-  kb_sy_text="$2"
-  if [ "${#kb_sy_text}" -le "${KB_WIDTH}" ] || ! kb_terminal; then
-    printf '%s\n' "${kb_sy_text}"
-    return 0
-  fi
-  printf '%s\n' "${kb_sy_text}" | kb_wrap "$1"
+  printf '%s\n' "$1"
 }
 
 kb_info() {
   [ "${KIBAN_JSON:-n}" != y ] || return 0
-  kb_say 8 "$*"
+  kb_say "$*"
 }
 
 kb_success() {
@@ -57,7 +24,7 @@ kb_success() {
     kb_ui_done "$*"
     return 0
   fi
-  kb_say 0 "$*"
+  kb_say "$*"
 }
 
 kb_warning() {
@@ -65,7 +32,7 @@ kb_warning() {
     kb_ui_log WARN "$*"
     return 0
   fi
-  kb_say 0 "${KB_PROG}: warning: $*" >&2
+  kb_say "${KB_PROG}: warning: $*" >&2
 }
 
 kb_error() {
@@ -73,7 +40,7 @@ kb_error() {
     kb_ui_log ERROR "$*"
     return 0
   fi
-  kb_say 0 "${KB_PROG}: $*" >&2
+  kb_say "${KB_PROG}: $*" >&2
 }
 
 kb_json_string() {

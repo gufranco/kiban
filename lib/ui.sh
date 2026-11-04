@@ -134,14 +134,8 @@ kb_ui_log() {
   WARN) kb_ul_colour="${KB_UI_WARN}" ;;
   *) kb_ul_colour="${KB_UI_OK}" ;;
   esac
-  kb_ul_lines=$(printf '%s kiban: %s\n' "${kb_ul_level}" "${kb_ul_text}" | kb_wrap 2)
-  kb_ul_first=$(printf '%s\n' "${kb_ul_lines}" | sed -n '1p')
-  kb_ul_rest=$(printf '%s\n' "${kb_ul_lines}" | sed '1d')
   kb_ul_label=$(kb_ui_ink "${kb_ul_colour}" --bold -- "${kb_ul_level}")
-  printf '%s%s\n' "${kb_ul_label}" "${kb_ul_first#"${kb_ul_level}"}" >&2
-  if [ -n "${kb_ul_rest}" ]; then
-    printf '%s\n' "${kb_ul_rest}" >&2
-  fi
+  printf '%s kiban: %s\n' "${kb_ul_label}" "${kb_ul_text}" >&2
 }
 
 kb_ui_choose() {
