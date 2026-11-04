@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/gufranco/kiban/compare/v1.1.0...v1.1.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* let the terminal wrap long messages ([3810a86](https://github.com/gufranco/kiban/commit/3810a86e23b47873b0f2dd8fcb682aeea6cdda44))
+* **ui:** line up table cells with wide letters ([9f9a230](https://github.com/gufranco/kiban/commit/9f9a230b741009bed4d8b62a9ce3ff2ca86d494f))
+
 # [1.1.0](https://github.com/gufranco/kiban/compare/v1.0.1...v1.1.0) (2026-11-04)
 
 
