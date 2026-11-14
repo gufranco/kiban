@@ -135,7 +135,7 @@ KIBAN_ROSETTA            y                                    default
 KIBAN_MOUNT_TYPE         virtiofs                             default
 KIBAN_MOUNT_INOTIFY      n                                    default
 KIBAN_DNS                -                                    default
-KIBAN_DATA_DIR           $HOME/Docker               default
+KIBAN_DATA_DIR           ~/Docker                             default
 ```
 
 | 設定 | 既定値 |
